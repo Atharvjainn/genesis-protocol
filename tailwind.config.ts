@@ -57,6 +57,24 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Hackathon specific colors
+        hackathon: {
+          black: "hsl(var(--hackathon-black))",
+          dark: "hsl(var(--hackathon-dark))",
+          cyan: "hsl(var(--hackathon-cyan))",
+          purple: "hsl(var(--hackathon-purple))",
+          green: "hsl(var(--hackathon-green))",
+          blue: "hsl(var(--hackathon-blue))",
+        },
+        glow: {
+          cyan: "hsl(var(--glow-cyan))",
+          purple: "hsl(var(--glow-purple))",
+          green: "hsl(var(--glow-green))",
+        },
+      },
+      fontFamily: {
+        mono: ["'JetBrains Mono'", "'Fira Code'", "Consolas", "monospace"],
+        display: ["'Orbitron'", "'Rajdhani'", "sans-serif"],
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -65,25 +83,24 @@ export default {
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+      },
+      boxShadow: {
+        glow: "0 0 20px hsl(var(--primary) / 0.5), 0 0 40px hsl(var(--primary) / 0.3)",
+        "glow-lg": "0 0 40px hsl(var(--primary) / 0.6), 0 0 80px hsl(var(--primary) / 0.4)",
+        "glow-cyan": "0 0 20px hsl(var(--hackathon-cyan) / 0.5), 0 0 40px hsl(var(--hackathon-cyan) / 0.3)",
+        "glow-purple": "0 0 20px hsl(var(--hackathon-purple) / 0.5), 0 0 40px hsl(var(--hackathon-purple) / 0.3)",
+        "glow-green": "0 0 20px hsl(var(--hackathon-green) / 0.5), 0 0 40px hsl(var(--hackathon-green) / 0.3)",
       },
     },
   },
