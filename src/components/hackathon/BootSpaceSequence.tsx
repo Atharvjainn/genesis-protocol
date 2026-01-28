@@ -16,7 +16,7 @@ type BootLine = {
  * Purpose: Build anticipation, keep judges engaged
  */
 const BOOT_LINES: BootLine[] = [
-  { text: "booting genesis protocol v1.0..." },
+  { text: "booting QuasarxAI 2026..." },
   { text: "checking caffeine levels........... sufficient ☕", delayAfter: 500 },
   { text: "allocating neurons for creativity..." },
 
