@@ -13,12 +13,15 @@ export function useGithubCommits() {
         const res = await fetch(
           `https://api.github.com/repos/${OWNER}/${REPO}/commits`
         );
-        const commits = await res.json();
 
+        if (!res.ok) return;
+
+        const commits = await res.json();
         if (!Array.isArray(commits) || commits.length === 0) return;
 
         const latest = commits[0];
 
+        // First load: store SHA, don't toast
         if (!lastShaRef.current) {
           lastShaRef.current = latest.sha;
           return;
@@ -28,24 +31,26 @@ export function useGithubCommits() {
           lastShaRef.current = latest.sha;
 
           const author =
-            latest.commit.author?.name ?? "Someone";
-          const message =
-            latest.commit.message.split("\n")[0];
+            latest.commit.author?.name ??
+            latest.author?.login ??
+            "Unknown";
 
-          toast(
-            `🚀 ${author} pushed a commit`,
-            {
-              description: message,
-              duration: 5000,
-            }
-          );
+          const message =
+            latest.commit.message
+              .split("\n")[0]
+              .slice(0, 80);
+
+          toast("🚀 New push detected", {
+            description: `${author} · ${message}`,
+            duration: 4500,
+          });
         }
       } catch (err) {
-        console.error("GitHub commit polling failed", err);
+        console.error("GitHub polling failed", err);
       }
     };
 
-    poll(); // initial
+    poll();
     const interval = setInterval(poll, 10000); // every 10s
 
     return () => clearInterval(interval);

@@ -112,3 +112,36 @@ body {
 .animate-blink {
   animation: blink 1s steps(1) infinite;
 }
+
+/* Sonner toast transitions */
+
+[data-sonner-toast] {
+  animation: toast-in 0.35s ease-out forwards;
+}
+
+[data-sonner-toast][data-state="closed"] {
+  animation: toast-out 0.3s ease-in forwards;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(24px) scale(0.96);
+  }
+}
+
