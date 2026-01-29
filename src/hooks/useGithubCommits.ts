@@ -1,58 +1,69 @@
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 
-const OWNER = "Atharvjainn";
-const REPO = "genesis-protocol";
+const TEAMS = [
+ "Testingrepo"
+]; // repo names inside the org
 
 export function useGithubCommits() {
-  const lastShaRef = useRef<string | null>(null);
+  const lastShaMap = useRef<Record<string, string>>({});
+  const queueRef = useRef<any[]>([]);
+  const isToastingRef = useRef(false);
 
   useEffect(() => {
+    const showNextToast = () => {
+      if (isToastingRef.current || queueRef.current.length === 0) return;
+
+      isToastingRef.current = true;
+      const item = queueRef.current.shift();
+
+      toast("🚀 New push detected", {
+        description: `${item.repo} · ${item.author}\n${item.message}\nTotal commits: ${item.total}`,
+        duration: 4500,
+        onDismiss: () => {
+          isToastingRef.current = false;
+          showNextToast(); // show next toast
+        },
+      });
+    };
+
     const poll = async () => {
-      try {
-        const res = await fetch(
-          `https://api.github.com/repos/${OWNER}/${REPO}/commits`
-        );
+      for (const repo of TEAMS) {
+        try {
+          const res = await fetch(`/api/commits?repo=${repo}`);
+          if (!res.ok) continue;
 
-        if (!res.ok) return;
+          const data = await res.json();
 
-        const commits = await res.json();
-        if (!Array.isArray(commits) || commits.length === 0) return;
+          const lastSha = lastShaMap.current[repo];
 
-        const latest = commits[0];
+          // first load → just store SHA
+          if (!lastSha) {
+            lastShaMap.current[repo] = data.sha;
+            continue;
+          }
 
-        // First load: store SHA, don't toast
-        if (!lastShaRef.current) {
-          lastShaRef.current = latest.sha;
-          return;
+          // new commit
+          if (data.sha !== lastSha) {
+            lastShaMap.current[repo] = data.sha;
+
+            queueRef.current.push({
+              repo,
+              author: data.author,
+              message: data.message,
+              total: data.totalCommits,
+            });
+
+            showNextToast();
+          }
+        } catch (err) {
+          console.error("Polling failed for", repo, err);
         }
-
-        if (latest.sha !== lastShaRef.current) {
-          lastShaRef.current = latest.sha;
-
-          const author =
-            latest.commit.author?.name ??
-            latest.author?.login ??
-            "Unknown";
-
-          const message =
-            latest.commit.message
-              .split("\n")[0]
-              .slice(0, 80);
-
-          toast("🚀 New push detected", {
-            description: `${author} · ${message}`,
-            duration: 4500,
-          });
-        }
-      } catch (err) {
-        console.error("GitHub polling failed", err);
       }
     };
 
     poll();
-    const interval = setInterval(poll, 10000); // every 10s
-
+    const interval = setInterval(poll, 10000);
     return () => clearInterval(interval);
   }, []);
 }
