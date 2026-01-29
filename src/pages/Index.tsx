@@ -10,34 +10,43 @@ import { BootSequencePhase } from "@/components/hackathon/BootSpaceSequence";
 type Phase = 'terminal' | 'countdown' | 'animation' | 'timer';
 
 const Index = () => {
-  const [currentPhase, setCurrentPhase] = useState<Phase>('terminal');
-
-  // 🔥 GLOBAL SKIP KEY (S)
   useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      // ignore typing inside inputs
-      const tag = (e.target as HTMLElement)?.tagName;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const tag = target?.tagName;
+
+      // ❌ Ignore when typing
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
 
-      if (e.key.toLowerCase() === 's') {
+      if (e.key === '8') {
         setCurrentPhase('timer');
       }
     };
 
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, []);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [])
+  const [currentPhase, setCurrentPhase] = useState<Phase>('terminal');
+  const [hasStarted, setHasStarted] = useState(false); // 🔑 NEW
 
   return (
     <>
       {currentPhase === 'terminal' && (
         <TerminalPhase
-          onComplete={() => setCurrentPhase('countdown')}
+          onComplete={() => {
+            setHasStarted(true);        // 🔥 start signal
+            setCurrentPhase('countdown');
+          }}
+          onReset={() => {
+            setHasStarted(false);
+            setCurrentPhase('terminal');
+          }}
         />
       )}
 
       {currentPhase === 'countdown' && (
         <CountdownPhase
+          enabled={hasStarted}          // 🔥 gated
           onComplete={() => setCurrentPhase('animation')}
         />
       )}

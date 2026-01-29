@@ -3,9 +3,9 @@ import { useHackathonTimer } from '@/hooks/useHackathonTimer';
 
 interface TerminalPhaseProps {
   onComplete?: () => void;
+  onReset?: () => void;
 }
-
-export function TerminalPhase({ onComplete }: TerminalPhaseProps) {
+export function TerminalPhase({ onComplete, onReset }: TerminalPhaseProps) {
   const {
     startTimer,
     pauseTimer,
@@ -133,10 +133,12 @@ export function TerminalPhase({ onComplete }: TerminalPhaseProps) {
       }
 
       else if (cmd === 'factory-reset') {
-        hardReset();
-        setDisplayedText('');
-        return;
-      }
+  hardReset();
+  setDisplayedText('');
+  onReset?.(); // 🔥 THIS REBOOTS THE SYSTEM
+  return;
+}
+
 
       else {
         response = '> Unknown command';

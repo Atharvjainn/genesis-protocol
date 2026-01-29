@@ -9,7 +9,7 @@ export function useHackathonTimer() {
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  /* ---------------- INIT (LOAD FROM LOCAL STORAGE) ---------------- */
+  /* ---------------- INIT (DO NOT CREATE TIME) ---------------- */
   useEffect(() => {
     const storedEndTime = localStorage.getItem("hackathonEndTime");
     const storedState = localStorage.getItem("hackathonState");
@@ -18,15 +18,13 @@ export function useHackathonTimer() {
       const parsed = Number(storedEndTime);
       setEndTime(parsed);
       setRemainingMs(Math.max(0, parsed - Date.now()));
+      setIsRunning(storedState === "started");
     } else {
-      const defaultEnd =
-        Date.now() + DEFAULT_DURATION_HOURS * 60 * 60 * 1000;
-      localStorage.setItem("hackathonEndTime", String(defaultEnd));
-      setEndTime(defaultEnd);
-      setRemainingMs(defaultEnd - Date.now());
+      // 🔥 Hackathon NOT initialized yet
+      setEndTime(null);
+      setRemainingMs(0);
+      setIsRunning(false);
     }
-
-    setIsRunning(storedState === "started");
   }, []);
 
   /* ---------------- TIMER TICK ---------------- */
@@ -46,26 +44,42 @@ export function useHackathonTimer() {
       }
     }, 1000);
 
-    return () => clearInterval(intervalRef.current!);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, [isRunning, endTime]);
 
   /* ---------------- COMMAND ACTIONS ---------------- */
 
-  // ▶ start
+  // ▶ START (INITIALIZES IF NEEDED)
   const startTimer = useCallback(() => {
-    if (!endTime) return;
+    let newEndTime = endTime;
+
+    // 🔥 FIRST EVER START → CREATE END TIME
+    if (!newEndTime) {
+      newEndTime =
+        Date.now() + DEFAULT_DURATION_HOURS * 60 * 60 * 1000;
+
+      localStorage.setItem("hackathonEndTime", String(newEndTime));
+      setEndTime(newEndTime);
+      setRemainingMs(newEndTime - Date.now());
+    }
+
     setIsRunning(true);
     localStorage.setItem("hackathonState", "started");
   }, [endTime]);
 
-  // ⏸ pause
+  // ⏸ PAUSE
   const pauseTimer = useCallback(() => {
+    if (!endTime) return;
     setIsRunning(false);
     localStorage.setItem("hackathonState", "idle");
-  }, []);
+  }, [endTime]);
 
-  // 🔁 reset to default (24h)
+  // 🔁 RESET (ONLY IF INITIALIZED)
   const resetTimer = useCallback(() => {
+    if (!endTime) return;
+
     const defaultEnd =
       Date.now() + DEFAULT_DURATION_HOURS * 60 * 60 * 1000;
 
@@ -75,10 +89,12 @@ export function useHackathonTimer() {
     setEndTime(defaultEnd);
     setRemainingMs(defaultEnd - Date.now());
     setIsRunning(false);
-  }, []);
+  }, [endTime]);
 
-  // ⏱ settime HH:MM:SS
+  // ⏱ SETTIME HH:MM:SS (ONLY IF INITIALIZED)
   const setTime = useCallback((h: number, m: number, s: number) => {
+    if (!endTime) return;
+
     const totalMs = (h * 3600 + m * 60 + s) * 1000;
     const newEnd = Date.now() + totalMs;
 
@@ -88,21 +104,15 @@ export function useHackathonTimer() {
     setEndTime(newEnd);
     setRemainingMs(totalMs);
     setIsRunning(false);
-  }, []);
+  }, [endTime]);
 
-  // 🔥 HARD RESET (wipe everything)
+  // 🔥 FACTORY RESET (FULL WIPE)
   const hardReset = useCallback(() => {
     localStorage.removeItem("hackathonEndTime");
     localStorage.removeItem("hackathonState");
 
-    const defaultEnd =
-      Date.now() + DEFAULT_DURATION_HOURS * 60 * 60 * 1000;
-
-    localStorage.setItem("hackathonEndTime", String(defaultEnd));
-    localStorage.setItem("hackathonState", "idle");
-
-    setEndTime(defaultEnd);
-    setRemainingMs(defaultEnd - Date.now());
+    setEndTime(null);
+    setRemainingMs(0);
     setIsRunning(false);
   }, []);
 
@@ -124,6 +134,7 @@ export function useHackathonTimer() {
     seconds,
     progress,
     isRunning,
+    hasInitialized: endTime !== null, // 👈 optional but useful
 
     // terminal commands
     startTimer,
