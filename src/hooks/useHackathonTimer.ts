@@ -1,142 +1,86 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from "react";
 
-const STORAGE_KEY = 'hackathon-timer-end';
-const DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-
-interface TimerState {
-  hours: number;
-  minutes: number;
-  seconds: number;
-  totalMs: number;
-  isRunning: boolean;
-  progress: number; // 0 to 1, how much time has elapsed
-}
-
-/**
- * Custom hook for managing a persistent 24-hour hackathon countdown timer.
- * Uses localStorage to persist across refreshes and syncs across tabs.
- */
 export function useHackathonTimer() {
-  const [timerState, setTimerState] = useState<TimerState>({
-    hours: 24,
-    minutes: 0,
-    seconds: 0,
-    totalMs: DURATION_MS,
-    isRunning: false,
-    progress: 0,
-  });
+  const [endTime, setEndTime] = useState<number | null>(null);
+  const [remainingMs, setRemainingMs] = useState(0);
+  const [isRunning, setIsRunning] = useState(false);
 
-  // Calculate time remaining from end timestamp
-  const calculateTimeRemaining = useCallback((endTime: number): TimerState => {
-    const now = Date.now();
-    const remaining = Math.max(0, endTime - now);
-    const elapsed = DURATION_MS - remaining;
-    
-    const hours = Math.floor(remaining / (1000 * 60 * 60));
-    const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-    return {
-      hours,
-      minutes,
-      seconds,
-      totalMs: remaining,
-      isRunning: remaining > 0,
-      progress: Math.min(1, elapsed / DURATION_MS),
-    };
-  }, []);
+  // 🔁 Sync time from backend
+  const syncTime = useCallback(async () => {
+    try {
+      const res = await fetch("http://localhost:3001/time");
+      const data = await res.json();
 
-  // Start the timer (called when hackathon begins)
-  const startTimer = useCallback(() => {
-    const endTime = Date.now() + DURATION_MS;
-    localStorage.setItem(STORAGE_KEY, endTime.toString());
-    
-    // Dispatch storage event for cross-tab sync
-    window.dispatchEvent(new StorageEvent('storage', {
-      key: STORAGE_KEY,
-      newValue: endTime.toString(),
-    }));
-
-    setTimerState(calculateTimeRemaining(endTime));
-  }, [calculateTimeRemaining]);
-
-  // Reset the timer
-  const resetTimer = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY);
-    setTimerState({
-      hours: 24,
-      minutes: 0,
-      seconds: 0,
-      totalMs: DURATION_MS,
-      isRunning: false,
-      progress: 0,
-    });
-  }, []);
-
-  // Check if timer already exists (for page refresh handling)
-  const checkExistingTimer = useCallback((): boolean => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const endTime = parseInt(stored, 10);
-      if (endTime > Date.now()) {
-        setTimerState(calculateTimeRemaining(endTime));
-        return true;
+      if (data.endTime) {
+        setEndTime(data.endTime);
+        setRemainingMs(Math.max(0, data.endTime - Date.now()));
+        setIsRunning(data.running);
       } else {
-        // Timer has expired
-        localStorage.removeItem(STORAGE_KEY);
+        setIsRunning(false);
+        setRemainingMs(0);
       }
+    } catch (err) {
+      console.error("Time sync failed", err);
     }
-    return false;
-  }, [calculateTimeRemaining]);
+  }, []);
 
-  // Update timer every second
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) return;
+  // ⏱ Start ticking locally
+  const startTimer = useCallback(() => {
+    if (!endTime) return;
 
-    const endTime = parseInt(stored, 10);
-    
-    const interval = setInterval(() => {
-      const newState = calculateTimeRemaining(endTime);
-      setTimerState(newState);
+    if (intervalRef.current) clearInterval(intervalRef.current);
 
-      if (!newState.isRunning) {
-        clearInterval(interval);
+    intervalRef.current = setInterval(() => {
+      const ms = Math.max(0, endTime - Date.now());
+      setRemainingMs(ms);
+
+      if (ms === 0) {
+        setIsRunning(false);
+        clearInterval(intervalRef.current!);
       }
     }, 1000);
+  }, [endTime]);
 
-    return () => clearInterval(interval);
-  }, [calculateTimeRemaining, timerState.isRunning]);
+  const resetTimer = useCallback(async () => {
+    await fetch("http://localhost:3001/reset");
+    setEndTime(null);
+    setRemainingMs(0);
+    setIsRunning(false);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+  }, []);
 
-  // Sync across tabs
+  // 🔥 Initial sync (page load / refresh safe)
   useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) {
-        if (e.newValue) {
-          const endTime = parseInt(e.newValue, 10);
-          setTimerState(calculateTimeRemaining(endTime));
-        } else {
-          // Timer was reset in another tab
-          setTimerState({
-            hours: 24,
-            minutes: 0,
-            seconds: 0,
-            totalMs: DURATION_MS,
-            isRunning: false,
-            progress: 0,
-          });
-        }
-      }
-    };
+    syncTime();
+  }, [syncTime]);
 
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, [calculateTimeRemaining]);
+  // 🔄 Restart ticking when endTime updates
+  useEffect(() => {
+    if (endTime && isRunning) {
+      startTimer();
+    }
+  }, [endTime, isRunning, startTimer]);
+
+  // ⏱ Derived values
+  const totalSeconds = Math.floor(remainingMs / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  const progress = endTime
+    ? 1 - remainingMs / (endTime - (endTime - remainingMs))
+    : 0;
 
   return {
-    ...timerState,
+    hours,
+    minutes,
+    seconds,
+    progress,
+    isRunning,
     startTimer,
     resetTimer,
-    checkExistingTimer,
+    syncTime, // 🔑 expose this
   };
 }

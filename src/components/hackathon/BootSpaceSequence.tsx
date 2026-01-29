@@ -8,16 +8,40 @@ type BootLine = {
   text: string;
   delayAfter?: number;
   highlight?: boolean;
+  center?: boolean;
+  size?: "xl";
 };
 
 /**
  * FUN + TECHY HACKATHON BOOT SEQUENCE
- * Duration: ~7–8 seconds
- * Purpose: Build anticipation, keep judges engaged
+ * Duration: ~8–10 seconds
+ * Purpose: Welcome → Hype → Boot logs
  */
 const BOOT_LINES: BootLine[] = [
-  { text: "booting QuasarxAI 2026..." },
-  { text: "checking caffeine levels........... sufficient ☕", delayAfter: 500 },
+  // ===== WELCOME =====
+  {
+    text: "IIIT Ranchi welcomes you",
+    highlight: true,
+    center: true,
+    delayAfter: 1500,
+  },
+
+  { text: "", delayAfter: 500 },
+
+  // ===== EVENT TITLE =====
+  {
+    text: "QUASARXAI 2026",
+    highlight: true,
+    center: true,
+    size: "xl",
+    delayAfter: 2000,
+  },
+
+  { text: "", delayAfter: 700 },
+
+  // ===== BOOT SEQUENCE =====
+  { text: "booting QuasarXAI systems..." },
+  { text: "checking caffeine levels........... sufficient ☕", delayAfter: 600 },
   { text: "allocating neurons for creativity..." },
 
   // 👇 SLOW, FUNNY SECTION
@@ -32,11 +56,12 @@ const BOOT_LINES: BootLine[] = [
   { text: "syncing team brainwaves............. OK" },
   { text: "optimizing for chaos................ stable-ish", delayAfter: 800 },
   { text: "locking time window................. 24:00:00", delayAfter: 900 },
+
   { text: "HACKATHON STARTED", highlight: true, delayAfter: 1200 },
 ];
 
 export function BootSequencePhase({ onComplete }: BootSequencePhaseProps) {
-  const [completedLines, setCompletedLines] = useState<string[]>([]);
+  const [completedLines, setCompletedLines] = useState<BootLine[]>([]);
   const [currentLine, setCurrentLine] = useState("");
   const [lineIndex, setLineIndex] = useState(0);
   const [charIndex, setCharIndex] = useState(0);
@@ -53,12 +78,12 @@ export function BootSequencePhase({ onComplete }: BootSequencePhaseProps) {
       const typingTimer = setTimeout(() => {
         setCurrentLine(prev => prev + line[charIndex]);
         setCharIndex(c => c + 1);
-      }, 20); // typing speed (human-like)
+      }, 20);
 
       return () => clearTimeout(typingTimer);
     } else {
       const delayTimer = setTimeout(() => {
-        setCompletedLines(prev => [...prev, line]);
+        setCompletedLines(prev => [...prev, BOOT_LINES[lineIndex]]);
         setCurrentLine("");
         setCharIndex(0);
         setLineIndex(i => i + 1);
@@ -75,18 +100,28 @@ export function BootSequencePhase({ onComplete }: BootSequencePhaseProps) {
           <div
             key={i}
             className={`whitespace-pre ${
-              line === "HACKATHON STARTED"
-                ? "text-green-300 font-bold text-3xl tracking-widest mt-4"
+              line.center ? "text-center" : ""
+            } ${
+              line.size === "xl"
+                ? "text-4xl md:text-5xl tracking-widest my-4"
+                : line.highlight
+                ? "text-green-300 font-bold mt-3"
                 : ""
             }`}
           >
-            {"> "}{line}
+            {!line.center && "> "}
+            {line.text}
           </div>
         ))}
 
         {lineIndex < BOOT_LINES.length && (
-          <div className="whitespace-pre">
-            {"> "}{currentLine}
+          <div
+            className={`whitespace-pre ${
+              BOOT_LINES[lineIndex].center ? "text-center" : ""
+            }`}
+          >
+            {!BOOT_LINES[lineIndex].center && "> "}
+            {currentLine}
             <span className="ml-1 animate-blink">█</span>
           </div>
         )}

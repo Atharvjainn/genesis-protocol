@@ -7,7 +7,8 @@ interface TimerPhaseProps {
 }
 
 export function TimerPhase({ onReset }: TimerPhaseProps) {
-  useGithubCommits()
+  useGithubCommits();
+
   const {
     hours,
     minutes,
@@ -15,22 +16,45 @@ export function TimerPhase({ onReset }: TimerPhaseProps) {
     progress,
     isRunning,
     startTimer,
-    resetTimer,
+    syncTime,
   } = useHackathonTimer();
 
   const [isVisible, setIsVisible] = useState(false);
-  const [theme, setTheme] = useState<'cyan' | 'purple' | 'green'>('green');
+  const [hasStarted, setHasStarted] = useState(false); // 🔑 FIX
+  const [theme] = useState<'cyan' | 'purple' | 'green'>('green');
 
+  // ✅ ONLY show TIME OVER if hackathon actually ran
+  const isTimeOver =
+    hasStarted &&
+    !isRunning &&
+    hours === 0 &&
+    minutes === 0 &&
+    seconds === 0;
+
+  // Fade-in
   useEffect(() => {
     const t = setTimeout(() => setIsVisible(true), 100);
     return () => clearTimeout(t);
   }, []);
 
+  // Initial sync
   useEffect(() => {
-    startTimer();
-  }, [startTimer]);
+    syncTime();
+  }, [syncTime]);
 
-  const formatTime = (v: number) => v.toString().padStart(2, '0');
+  // Detect start
+  useEffect(() => {
+    if (isRunning) {
+      setHasStarted(true);
+      startTimer();
+    }
+  }, [isRunning, startTimer]);
+
+  // Poll backend
+  useEffect(() => {
+    const poll = setInterval(syncTime, 5000);
+    return () => clearInterval(poll);
+  }, [syncTime]);
 
   const getThemeColor = () => {
     switch (theme) {
@@ -60,7 +84,7 @@ export function TimerPhase({ onReset }: TimerPhaseProps) {
 
   return (
     <div className="fixed inset-0 bg-background flex items-center justify-center overflow-hidden">
-      {/* Animated background */}
+      {/* Background */}
       <div
         className="absolute inset-0 opacity-30 animate-gradient-shift"
         style={{
@@ -72,40 +96,28 @@ export function TimerPhase({ onReset }: TimerPhaseProps) {
         }}
       />
 
-      {/* Main container */}
       <div
         className={`relative transition-all duration-1000 ease-out ${
           isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-        } -translate-y-8`  }
+        } -translate-y-8`}
       >
-        {/* 🔥 LOGO + EVENT NAME */}
-        <div className="flex flex-col items-center mb-4 animate-fade-in-up">
+        {/* Logo */}
+        <div className="flex flex-col items-center mb-4">
           <img
             src="/logo.png"
             alt="Quasar X AI Logo"
             className="w-70 h-40 mb-3 opacity-90"
           />
-
-          {/* <h2 className="text-2xl md:text-3xl font-bold tracking-widest text-white">
-            Quasar <span className="text-hackathon-green">X</span> AI
-          </h2>
-
-          <span className="text-sm tracking-[0.3em] text-muted-foreground mt-1">
-            2026
-          </span> */}
-
-          {/* System status */}
-          <div className="mt-4 text-xs font-mono tracking-widest text-hackathon-green/80">
+          <div className="mt-2 text-xs font-mono tracking-widest text-hackathon-green/80">
             SYSTEM STATUS · TIME LOCK ACTIVE
           </div>
         </div>
 
-        {/* Header */}
-        <h1 className="text-center text-2xl md:text-3xl font-bold text-muted-foreground mb-12 tracking-widest uppercase animate-fade-in-up">
+        <h1 className="text-center text-2xl md:text-3xl font-bold text-muted-foreground mb-12 tracking-widest uppercase">
           Hackathon Time Remaining
         </h1>
 
-        {/* Timer */}
+        {/* Ring */}
         <div className="relative flex items-center justify-center">
           <svg
             className="absolute animate-ring-rotate"
@@ -143,15 +155,29 @@ export function TimerPhase({ onReset }: TimerPhaseProps) {
             </defs>
           </svg>
 
+          {/* Center */}
           <div
-            className={`relative z-10 flex items-center justify-center gap-4 font-mono ${getThemeGlow()}`}
-            style={{ padding: '40px', borderRadius: '20px' }}
+            className={`relative z-10 flex items-center justify-center font-mono ${getThemeGlow()}`}
+            style={{ padding: '48px', borderRadius: '20px', minWidth: '520px' }}
           >
-            <TimeBlock label="Hours" value={hours} color={getThemeColor()} />
-            <Separator color={getThemeColor()} />
-            <TimeBlock label="Minutes" value={minutes} color={getThemeColor()} />
-            <Separator color={getThemeColor()} />
-            <TimeBlock label="Seconds" value={seconds} color={getThemeColor()} />
+            {!isTimeOver ? (
+              <div className="flex items-center gap-4">
+                <TimeBlock label="Hours" value={hours} color={getThemeColor()} />
+                <Separator color={getThemeColor()} />
+                <TimeBlock label="Minutes" value={minutes} color={getThemeColor()} />
+                <Separator color={getThemeColor()} />
+                <TimeBlock label="Seconds" value={seconds} color={getThemeColor()} />
+              </div>
+            ) : (
+              <div className="text-center animate-fade-in-up">
+                <div className={`text-6xl md:text-7xl font-bold ${getThemeColor()} tracking-widest`}>
+                  TIME OVER
+                </div>
+                <div className="mt-3 text-sm uppercase tracking-widest text-muted-foreground">
+                  Submissions Closed
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -159,17 +185,19 @@ export function TimerPhase({ onReset }: TimerPhaseProps) {
         <div className="flex items-center justify-center gap-3 mt-10">
           <div
             className={`w-3 h-3 rounded-full ${
-              isRunning ? 'bg-hackathon-green animate-pulse' : 'bg-destructive'
+              isTimeOver
+                ? 'bg-destructive'
+                : isRunning
+                ? 'bg-hackathon-green animate-pulse'
+                : 'bg-yellow-500'
             }`}
           />
           <span className="text-muted-foreground text-sm uppercase tracking-wider">
-            {isRunning ? 'Hackathon Active' : "Time's Up"}
+            {isTimeOver ? 'Time Over' : isRunning ? 'Hackathon Active' : 'Paused'}
           </span>
         </div>
       </div>
 
-
-      
       <div className="absolute inset-0 noise-overlay pointer-events-none" />
     </div>
   );
