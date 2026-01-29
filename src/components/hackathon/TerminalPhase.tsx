@@ -1,39 +1,52 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useHackathonTimer } from '@/hooks/useHackathonTimer';
 
 interface TerminalPhaseProps {
-  onComplete: () => void;
+  onComplete?: () => void;
 }
 
 export function TerminalPhase({ onComplete }: TerminalPhaseProps) {
+  const {
+    startTimer,
+    pauseTimer,
+    resetTimer,
+    setTime,
+    hardReset,
+    isRunning,
+  } = useHackathonTimer();
+
   const [displayedText, setDisplayedText] = useState('');
   const [inputValue, setInputValue] = useState('');
   const [showCursor, setShowCursor] = useState(true);
   const [isTyping, setIsTyping] = useState(true);
   const [isDisabled, setIsDisabled] = useState(true);
+
   const inputRef = useRef<HTMLInputElement>(null);
 
   const welcomeText = `
 > HACKATHON COMMAND TERMINAL v2.0
-> ================================
-> Initializing system...
-> Loading modules... [OK]
-> Connecting to network... [OK]
-> Authentication verified.
+> ==============================
+> System initialized.
+> Environment loaded.
 >
-> Ready for command input.
+> Available commands:
+> start | pause | reset | settime HH:MM:SS
+> status | clear | factory-reset
 >
-> Type 'start' to begin the hackathon`;
+> Type a command to continue.
+`;
 
-  // Typing animation
+  /* ---------------- TYPING EFFECT ---------------- */
+
   useEffect(() => {
     let index = 0;
-    const typingSpeed = 15;
+    const speed = 15;
 
-    const typeText = () => {
+    const type = () => {
       if (index < welcomeText.length) {
         setDisplayedText(welcomeText.slice(0, index + 1));
         index++;
-        setTimeout(typeText, typingSpeed);
+        setTimeout(type, speed);
       } else {
         setIsTyping(false);
         setIsDisabled(false);
@@ -41,10 +54,11 @@ export function TerminalPhase({ onComplete }: TerminalPhaseProps) {
       }
     };
 
-    typeText();
+    type();
   }, []);
 
-  // Cursor blink
+  /* ---------------- CURSOR BLINK ---------------- */
+
   useEffect(() => {
     if (isTyping) {
       setShowCursor(true);
@@ -58,42 +72,86 @@ export function TerminalPhase({ onComplete }: TerminalPhaseProps) {
     return () => clearInterval(interval);
   }, [isTyping]);
 
+  /* ---------------- INPUT ---------------- */
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (isDisabled) return;
-    setInputValue(e.target.value.toLowerCase());
+    setInputValue(e.target.value);
   };
 
-  // 🔥 ONLY LOGIC CHANGE IS HERE
-  const handleSubmit = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
+  /* ---------------- COMMAND HANDLER ---------------- */
 
-    if (inputValue.trim() === 'start') {
-      setIsDisabled(true);
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
 
-      setDisplayedText(prev =>
-        prev +
-        '\n\n> COMMAND ACCEPTED: start\n> Sending START signal...'
-      );
+      const cmd = inputValue.trim().toLowerCase();
+      setInputValue('');
 
-      try {
-        await fetch("http://localhost:3001/start");
-        setDisplayedText(prev =>
-          prev + '\n> START signal sent. Awaiting execution...'
-        );
-      } catch {
-        setDisplayedText(prev =>
-          prev + '\n> ERROR: control server not reachable'
-        );
-        setIsDisabled(false);
+      let response = '';
+
+      if (cmd === 'start') {
+        startTimer();
+        response = '> Hackathon started';
+        onComplete?.();
       }
-    }
-  }, [inputValue]);
+
+      else if (cmd === 'pause') {
+        pauseTimer();
+        response = '> Hackathon paused';
+      }
+
+      else if (cmd === 'reset') {
+        resetTimer();
+        response = '> Timer reset to default (24h)';
+      }
+
+      else if (cmd.startsWith('settime')) {
+        const [, time] = cmd.split(' ');
+        if (!time) {
+          response = '> Usage: settime HH:MM:SS';
+        } else {
+          const [h, m, s] = time.split(':').map(Number);
+          if ([h, m, s].some(isNaN)) {
+            response = '> Invalid time format';
+          } else {
+            setTime(h, m, s);
+            response = `> Time set to ${time}`;
+          }
+        }
+      }
+
+      else if (cmd === 'status') {
+        response = isRunning
+          ? '> Status: RUNNING'
+          : '> Status: IDLE';
+      }
+
+      else if (cmd === 'clear') {
+        setDisplayedText('');
+        return;
+      }
+
+      else if (cmd === 'factory-reset') {
+        hardReset();
+        setDisplayedText('');
+        return;
+      }
+
+      else {
+        response = '> Unknown command';
+      }
+
+      setDisplayedText(prev => prev + '\n' + response);
+    },
+    [inputValue, startTimer, pauseTimer, resetTimer, setTime, hardReset, isRunning]
+  );
 
   const handleContainerClick = () => {
-    if (!isDisabled) {
-      inputRef.current?.focus();
-    }
+    if (!isDisabled) inputRef.current?.focus();
   };
+
+  /* ---------------- UI ---------------- */
 
   return (
     <div
@@ -105,6 +163,7 @@ export function TerminalPhase({ onComplete }: TerminalPhaseProps) {
 
       <div className="relative w-full max-w-4xl">
         <div className="bg-hackathon-dark/80 border border-primary/30 rounded-lg overflow-hidden shadow-glow">
+          {/* Title bar */}
           <div className="flex items-center gap-2 px-4 py-3 bg-hackathon-black/50 border-b border-primary/20">
             <div className="w-3 h-3 rounded-full bg-destructive/70" />
             <div className="w-3 h-3 rounded-full bg-yellow-500/70" />
@@ -114,6 +173,7 @@ export function TerminalPhase({ onComplete }: TerminalPhaseProps) {
             </span>
           </div>
 
+          {/* Terminal */}
           <div className="p-6 min-h-[400px] font-mono text-sm md:text-base">
             <pre className="text-primary whitespace-pre-wrap leading-relaxed">
               {displayedText}
@@ -150,7 +210,7 @@ export function TerminalPhase({ onComplete }: TerminalPhaseProps) {
 
         {!isTyping && !isDisabled && (
           <p className="text-center text-muted-foreground text-sm mt-6 animate-fade-in-up">
-            Press <kbd className="px-2 py-1 bg-secondary rounded text-primary">Enter</kbd> after typing the command
+            Press <kbd className="px-2 py-1 bg-secondary rounded text-primary">Enter</kbd> to execute
           </p>
         )}
       </div>

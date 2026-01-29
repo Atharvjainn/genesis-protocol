@@ -16,14 +16,13 @@ export function TimerPhase({ onReset }: TimerPhaseProps) {
     progress,
     isRunning,
     startTimer,
-    syncTime,
   } = useHackathonTimer();
 
   const [isVisible, setIsVisible] = useState(false);
-  const [hasStarted, setHasStarted] = useState(false); // 🔑 FIX
+  const [hasStarted, setHasStarted] = useState(false);
   const [theme] = useState<'cyan' | 'purple' | 'green'>('green');
 
-  // ✅ ONLY show TIME OVER if hackathon actually ran
+  // ✅ TIME OVER only after real run
   const isTimeOver =
     hasStarted &&
     !isRunning &&
@@ -37,11 +36,6 @@ export function TimerPhase({ onReset }: TimerPhaseProps) {
     return () => clearTimeout(t);
   }, []);
 
-  // Initial sync
-  useEffect(() => {
-    syncTime();
-  }, [syncTime]);
-
   // Detect start
   useEffect(() => {
     if (isRunning) {
@@ -49,12 +43,6 @@ export function TimerPhase({ onReset }: TimerPhaseProps) {
       startTimer();
     }
   }, [isRunning, startTimer]);
-
-  // Poll backend
-  useEffect(() => {
-    const poll = setInterval(syncTime, 5000);
-    return () => clearInterval(poll);
-  }, [syncTime]);
 
   const getThemeColor = () => {
     switch (theme) {
@@ -80,7 +68,10 @@ export function TimerPhase({ onReset }: TimerPhaseProps) {
 
   const radius = 180;
   const circumference = 2 * Math.PI * radius;
+
+  // 🔥 Freeze ring when time over
   const strokeDashoffset = circumference * (1 - progress);
+
 
   return (
     <div className="fixed inset-0 bg-background flex items-center justify-center overflow-hidden">
@@ -118,68 +109,73 @@ export function TimerPhase({ onReset }: TimerPhaseProps) {
         </h1>
 
         {/* Ring */}
-        <div className="relative flex items-center justify-center">
-          <svg
-            className="absolute animate-ring-rotate"
-            width={radius * 2 + 40}
-            height={radius * 2 + 40}
-            style={{ transform: 'rotate(-90deg)' }}
-          >
-            <circle
-              cx={radius + 20}
-              cy={radius + 20}
-              r={radius}
-              fill="none"
-              stroke="hsl(var(--muted))"
-              strokeWidth="4"
-              opacity="0.3"
-            />
-            <circle
-              cx={radius + 20}
-              cy={radius + 20}
-              r={radius}
-              fill="none"
-              stroke="url(#progressGradient)"
-              strokeWidth="4"
-              strokeLinecap="round"
-              strokeDasharray={circumference}
-              strokeDashoffset={strokeDashoffset}
-              className="transition-all duration-1000"
-            />
-            <defs>
-              <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="hsl(var(--hackathon-cyan))" />
-                <stop offset="50%" stopColor="hsl(var(--hackathon-purple))" />
-                <stop offset="100%" stopColor="hsl(var(--hackathon-green))" />
-              </linearGradient>
-            </defs>
-          </svg>
+       <div className="relative flex items-center justify-center">
 
-          {/* Center */}
-          <div
-            className={`relative z-10 flex items-center justify-center font-mono ${getThemeGlow()}`}
-            style={{ padding: '48px', borderRadius: '20px', minWidth: '520px' }}
-          >
-            {!isTimeOver ? (
-              <div className="flex items-center gap-4">
-                <TimeBlock label="Hours" value={hours} color={getThemeColor()} />
-                <Separator color={getThemeColor()} />
-                <TimeBlock label="Minutes" value={minutes} color={getThemeColor()} />
-                <Separator color={getThemeColor()} />
-                <TimeBlock label="Seconds" value={seconds} color={getThemeColor()} />
-              </div>
-            ) : (
-              <div className="text-center animate-fade-in-up">
-                <div className={`text-6xl md:text-7xl font-bold ${getThemeColor()} tracking-widest`}>
-                  TIME OVER
-                </div>
-                <div className="mt-3 text-sm uppercase tracking-widest text-muted-foreground">
-                  Submissions Closed
-                </div>
-              </div>
-            )}
-          </div>
+  {/* ⭕ RING — ONLY WHEN TIMER IS ACTIVE */}
+  {!isTimeOver && (
+    <svg
+      className="absolute animate-ring-rotate"
+      width={radius * 2 + 40}
+      height={radius * 2 + 40}
+      style={{ transform: 'rotate(-90deg)' }}
+    >
+      <circle
+        cx={radius + 20}
+        cy={radius + 20}
+        r={radius}
+        fill="none"
+        stroke="hsl(var(--muted))"
+        strokeWidth="4"
+        opacity="0.3"
+      />
+      <circle
+        cx={radius + 20}
+        cy={radius + 20}
+        r={radius}
+        fill="none"
+        stroke="url(#progressGradient)"
+        strokeWidth="4"
+        strokeLinecap="round"
+        strokeDasharray={circumference}
+        strokeDashoffset={strokeDashoffset}
+        className="transition-all duration-1000"
+      />
+      <defs>
+        <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="hsl(var(--hackathon-cyan))" />
+          <stop offset="50%" stopColor="hsl(var(--hackathon-purple))" />
+          <stop offset="100%" stopColor="hsl(var(--hackathon-green))" />
+        </linearGradient>
+      </defs>
+    </svg>
+  )}
+
+  {/* CENTER CONTENT */}
+  <div
+    className={`relative z-10 flex items-center justify-center font-mono ${getThemeGlow()}`}
+    style={{ padding: '48px', borderRadius: '20px', minWidth: '520px' }}
+  >
+    {!isTimeOver ? (
+      <div className="flex items-center gap-4">
+        <TimeBlock label="Hours" value={hours} color={getThemeColor()} />
+        <Separator color={getThemeColor()} />
+        <TimeBlock label="Minutes" value={minutes} color={getThemeColor()} />
+        <Separator color={getThemeColor()} />
+        <TimeBlock label="Seconds" value={seconds} color={getThemeColor()} />
+      </div>
+    ) : (
+      <div className="text-center animate-fade-in-up">
+        <div className={`text-6xl md:text-7xl font-bold ${getThemeColor()} tracking-widest`}>
+          TIME OVER
         </div>
+        <div className="mt-3 text-sm uppercase tracking-widest text-muted-foreground">
+          Submissions Closed
+        </div>
+      </div>
+    )}
+  </div>
+</div>
+
 
         {/* Status */}
         <div className="flex items-center justify-center gap-3 mt-10">

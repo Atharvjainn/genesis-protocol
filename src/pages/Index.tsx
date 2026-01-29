@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   TerminalPhase,
   CountdownPhase,
@@ -10,62 +10,42 @@ import { BootSequencePhase } from "@/components/hackathon/BootSpaceSequence";
 type Phase = 'terminal' | 'countdown' | 'animation' | 'timer';
 
 const Index = () => {
-  // ✅ start in terminal
   const [currentPhase, setCurrentPhase] = useState<Phase>('terminal');
 
-  // ✅ guard to prevent repeated resets
-  const hasStartedRef = useRef(false);
-
+  // 🔥 GLOBAL SKIP KEY (S)
   useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch("http://localhost:3001/status");
-        const data = await res.json();
+    const handleKey = (e: KeyboardEvent) => {
+      // ignore typing inside inputs
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
 
-        // ✅ START ONLY ONCE
-        if (data.state === "started" && !hasStartedRef.current) {
-          hasStartedRef.current = true;
-          setCurrentPhase("countdown");
-        }
-
-        // ✅ RESET CLEANLY
-        if (data.state === "idle") {
-          hasStartedRef.current = false;
-          setCurrentPhase("terminal");
-        }
-      } catch {
-        // server offline → ignore
+      if (e.key.toLowerCase() === 's') {
+        setCurrentPhase('timer');
       }
-    }, 1000);
+    };
 
-    return () => clearInterval(interval);
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
   }, []);
-
-  // ---- Normal phase flow ----
-  const handleTerminalComplete = () => {
-    setCurrentPhase('countdown');
-  };
-
-  const handleCountdownComplete = () => {
-    setCurrentPhase('animation');
-  };
-
-  const handleAnimationComplete = () => {
-    setCurrentPhase('timer');
-  };
 
   return (
     <>
       {currentPhase === 'terminal' && (
-        <TerminalPhase onComplete={handleTerminalComplete} />
+        <TerminalPhase
+          onComplete={() => setCurrentPhase('countdown')}
+        />
       )}
 
       {currentPhase === 'countdown' && (
-        <CountdownPhase onComplete={handleCountdownComplete} />
+        <CountdownPhase
+          onComplete={() => setCurrentPhase('animation')}
+        />
       )}
 
       {currentPhase === 'animation' && (
-        <BootSequencePhase onComplete={handleAnimationComplete} />
+        <BootSequencePhase
+          onComplete={() => setCurrentPhase('timer')}
+        />
       )}
 
       {currentPhase === 'timer' && <TimerPhase />}
