@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useHackathonTimer } from '@/hooks/useHackathonTimer';
-import { useGithubCommits } from "@/hooks/useGithubCommits";
 
 interface TimerPhaseProps {
   onReset?: () => void;
 }
 
 export function TimerPhase({ onReset }: TimerPhaseProps) {
-  useGithubCommits();
+  // 🔥 REMOVED: useGithubCommits() - now in App.tsx
 
   const {
     hours,
