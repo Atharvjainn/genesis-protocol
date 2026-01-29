@@ -12,7 +12,7 @@ export function useGithubCommits() {
   const intervalRef = useRef<NodeJS.Timeout | null>(null); // 🔥 Store interval reference
 
   useEffect(() => {
-    console.log("🎯 useGithubCommits hook initialized at", new Date().toLocaleTimeString());
+    // console.log("🎯 useGithubCommits hook initialized at", new Date().toLocaleTimeString());
 
     const showNextToast = () => {
       if (isToastingRef.current || queueRef.current.length === 0) {
@@ -26,65 +26,68 @@ export function useGithubCommits() {
       isToastingRef.current = true;
       const item = queueRef.current.shift();
 
-      console.log("🎉 SHOWING TOAST:", item);
+      // console.log("🎉 SHOWING TOAST:", item);
 
       toast("🚀 New push detected", {
-        description: `${item.repo} · ${item.author}\n${item.message}\nTotal commits: ${item.total}`,
-        duration: 4500,
-        onDismiss: () => {
-          console.log("✅ Toast dismissed, checking queue...");
-          isToastingRef.current = false;
-          showNextToast(); // show next toast
-        },
-        onAutoClose: () => {
-          console.log("⏰ Toast auto-closed, checking queue...");
-          isToastingRef.current = false;
-          showNextToast();
-        },
-      });
+            description:
+              `📦 ${item.repo}\n` +
+              `👤 ${item.author}\n\n` +
+              `💬 ${item.message}\n\n` +
+              `— — —\n` +
+              `📊 Total commits: ${item.total}`,
+            duration: 4500,
+            onDismiss: () => {
+              isToastingRef.current = false;
+              showNextToast();
+            },
+            onAutoClose: () => {
+              isToastingRef.current = false;
+              showNextToast();
+            },
+          });
     };
 
     const poll = async () => {
-      console.log("🔄 Polling at", new Date().toLocaleTimeString());
+      // console.log("🔄 Polling at", new Date().toLocaleTimeString());
 
       for (const repo of TEAMS) {
         try {
-          console.log(`📡 Fetching ${repo}...`);
+          // console.log(`📡 Fetching ${repo}...`);
           const res = await fetch(`/api/commits?repo=${repo}`);
           
           if (!res.ok) {
-            console.warn(`⚠️ Failed to fetch ${repo}:`, res.status);
+            // console.warn(`⚠️ Failed to fetch ${repo}:`, res.status);
             continue;
           }
 
           const data = await res.json();
-          console.log(`📦 Data for ${repo}:`, {
-            sha: data.sha?.substring(0, 7),
-            author: data.author,
-            message: data.message?.substring(0, 30),
-            total: data.totalCommits
-          });
+          // console.log(`📦 Data for ${repo}:`, {
+          //   sha: data.sha?.substring(0, 7),
+          //   author: data.author,
+          //   message: data.message?.substring(0, 30),
+          //   total: data.totalCommits
+          // });
 
           const lastSha = lastShaMap.current[repo];
 
           // first load → just store SHA
           if (!lastSha) {
-            console.log(`🆕 First detection for ${repo}, storing SHA:`, data.sha?.substring(0, 7));
+            // console.log(`🆕 First detection for ${repo}, storing SHA:`, data.sha?.substring(0, 7));
             lastShaMap.current[repo] = data.sha;
             continue;
           }
 
-          console.log(`🔍 Comparing for ${repo}:`, {
-            stored: lastSha.substring(0, 7),
-            current: data.sha?.substring(0, 7),
-            changed: data.sha !== lastSha
-          });
+          // console.log(`🔍 Comparing for ${repo}:`, {
+          //   stored: lastSha.substring(0, 7),
+          //   current: data.sha?.substring(0, 7),
+          //   changed: data.sha !== lastSha
+          // });
 
           // new commit detected
           if (data.sha !== lastSha) {
-            console.log(`🚀 NEW COMMIT DETECTED for ${repo}!`);
-            console.log(`   Old SHA: ${lastSha.substring(0, 7)}`);
-            console.log(`   New SHA: ${data.sha.substring(0, 7)}`);
+            // console.log(`🚀 NEW COMMIT DETECTED for ${repo}!`);
+            // console.log(`   Old SHA: ${lastSha.substring(0, 7)}`);
+            // console.log(`   New SHA: ${data.sha.substring(0, 7)}`);
             
             lastShaMap.current[repo] = data.sha;
 
@@ -96,35 +99,35 @@ export function useGithubCommits() {
             };
 
             queueRef.current.push(toastItem);
-            console.log("📥 Added to queue:", toastItem);
-            console.log("📊 Queue length:", queueRef.current.length);
+            // console.log("📥 Added to queue:", toastItem);
+            // console.log("📊 Queue length:", queueRef.current.length);
 
             showNextToast();
           } else {
-            console.log(`✓ No changes for ${repo}`);
+            // console.log(`✓ No changes for ${repo}`);
           }
         } catch (err) {
           console.error("❌ Polling error for", repo, err);
         }
       }
 
-      console.log("🏁 Poll complete\n");
+      // console.log("🏁 Poll complete\n");
     };
 
     // Initial poll
-    console.log("▶️ Starting initial poll...");
+    // console.log("▶️ Starting initial poll...");
     poll();
 
     // Set up interval and store reference
-    console.log("⏰ Setting up 10-second interval...");
+    // console.log("⏰ Setting up 10-second interval...");
     intervalRef.current = setInterval(() => {
-      console.log("\n⏰ INTERVAL TRIGGERED");
+      // console.log("\n⏰ INTERVAL TRIGGERED");
       poll();
-    }, 10000);
+    }, 50000);
 
     // Cleanup function
     return () => {
-      console.log("🛑 CLEANUP: Clearing interval");
+      // console.log("🛑 CLEANUP: Clearing interval");
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -134,10 +137,10 @@ export function useGithubCommits() {
 
   // 🔥 Add a second useEffect to verify the hook stays mounted
   useEffect(() => {
-    console.log("💚 useGithubCommits is MOUNTED");
+    // console.log("💚 useGithubCommits is MOUNTED");
     
     return () => {
-      console.log("💔 useGithubCommits is UNMOUNTING");
+      // console.log("💔 useGithubCommits is UNMOUNTING");
     };
   }, []);
 }
