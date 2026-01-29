@@ -4,13 +4,6 @@ interface TerminalPhaseProps {
   onComplete: () => void;
 }
 
-/**
- * TerminalPhase Component
- * 
- * Full-screen terminal UI that simulates a command-line interface.
- * Accepts "start" command to trigger the hackathon sequence.
- * Features authentic typing effect and blinking cursor.
- */
 export function TerminalPhase({ onComplete }: TerminalPhaseProps) {
   const [displayedText, setDisplayedText] = useState('');
   const [inputValue, setInputValue] = useState('');
@@ -31,11 +24,11 @@ export function TerminalPhase({ onComplete }: TerminalPhaseProps) {
 >
 > Type 'start' to begin the hackathon`;
 
-  // Typing animation for welcome text
+  // Typing animation
   useEffect(() => {
     let index = 0;
-    const typingSpeed = 15; // ms per character
-    
+    const typingSpeed = 15;
+
     const typeText = () => {
       if (index < welcomeText.length) {
         setDisplayedText(welcomeText.slice(0, index + 1));
@@ -44,7 +37,6 @@ export function TerminalPhase({ onComplete }: TerminalPhaseProps) {
       } else {
         setIsTyping(false);
         setIsDisabled(false);
-        // Focus input after typing completes
         setTimeout(() => inputRef.current?.focus(), 100);
       }
     };
@@ -52,7 +44,7 @@ export function TerminalPhase({ onComplete }: TerminalPhaseProps) {
     typeText();
   }, []);
 
-  // Cursor blink effect
+  // Cursor blink
   useEffect(() => {
     if (isTyping) {
       setShowCursor(true);
@@ -66,30 +58,37 @@ export function TerminalPhase({ onComplete }: TerminalPhaseProps) {
     return () => clearInterval(interval);
   }, [isTyping]);
 
-  // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (isDisabled) return;
     setInputValue(e.target.value.toLowerCase());
   };
 
-  // Handle command submission
-  const handleSubmit = useCallback((e: React.FormEvent) => {
+  // 🔥 ONLY LOGIC CHANGE IS HERE
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (inputValue.trim() === 'start') {
       setIsDisabled(true);
-      
-      // Add feedback text
-      setDisplayedText(prev => prev + '\n\n> COMMAND ACCEPTED: start\n> Initiating hackathon sequence...');
-      
-      // Trigger transition after brief delay
-      setTimeout(() => {
-        onComplete();
-      }, 800);
-    }
-  }, [inputValue, onComplete]);
 
-  // Focus input when clicking anywhere
+      setDisplayedText(prev =>
+        prev +
+        '\n\n> COMMAND ACCEPTED: start\n> Sending START signal...'
+      );
+
+      try {
+        await fetch("http://localhost:3001/start");
+        setDisplayedText(prev =>
+          prev + '\n> START signal sent. Awaiting execution...'
+        );
+      } catch {
+        setDisplayedText(prev =>
+          prev + '\n> ERROR: control server not reachable'
+        );
+        setIsDisabled(false);
+      }
+    }
+  }, [inputValue]);
+
   const handleContainerClick = () => {
     if (!isDisabled) {
       inputRef.current?.focus();
@@ -97,21 +96,15 @@ export function TerminalPhase({ onComplete }: TerminalPhaseProps) {
   };
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-background flex items-center justify-center p-8 cursor-text noise-overlay"
       onClick={handleContainerClick}
     >
-      {/* Scanline overlay */}
       <div className="absolute inset-0 scanlines pointer-events-none opacity-30" />
-      
-      {/* Subtle gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-hackathon-dark via-background to-hackathon-dark opacity-50" />
 
-      {/* Terminal container */}
       <div className="relative w-full max-w-4xl">
-        {/* Terminal window frame */}
         <div className="bg-hackathon-dark/80 border border-primary/30 rounded-lg overflow-hidden shadow-glow">
-          {/* Terminal header */}
           <div className="flex items-center gap-2 px-4 py-3 bg-hackathon-black/50 border-b border-primary/20">
             <div className="w-3 h-3 rounded-full bg-destructive/70" />
             <div className="w-3 h-3 rounded-full bg-yellow-500/70" />
@@ -121,15 +114,12 @@ export function TerminalPhase({ onComplete }: TerminalPhaseProps) {
             </span>
           </div>
 
-          {/* Terminal content */}
           <div className="p-6 min-h-[400px] font-mono text-sm md:text-base">
-            {/* Welcome text with typing effect */}
             <pre className="text-primary whitespace-pre-wrap leading-relaxed">
               {displayedText}
               {isTyping && <span className="animate-cursor-blink">▊</span>}
             </pre>
 
-            {/* Command input line */}
             {!isTyping && (
               <form onSubmit={handleSubmit} className="mt-4 flex items-center">
                 <span className="text-hackathon-green mr-2">&gt;</span>
@@ -144,7 +134,6 @@ export function TerminalPhase({ onComplete }: TerminalPhaseProps) {
                     autoComplete="off"
                     spellCheck={false}
                   />
-                  {/* Custom cursor */}
                   <span
                     className={`absolute top-0 text-primary transition-opacity ${
                       showCursor ? 'opacity-100' : 'opacity-0'
@@ -159,7 +148,6 @@ export function TerminalPhase({ onComplete }: TerminalPhaseProps) {
           </div>
         </div>
 
-        {/* Hint text */}
         {!isTyping && !isDisabled && (
           <p className="text-center text-muted-foreground text-sm mt-6 animate-fade-in-up">
             Press <kbd className="px-2 py-1 bg-secondary rounded text-primary">Enter</kbd> after typing the command
