@@ -2,7 +2,11 @@ import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 
 const TEAMS = [
- "Testingrepo"
+ "Oops_-404","INNOV8ORS","Hackers","Rasmalai","BruteForce",
+ "Re-Core","TEAM_VAAAS","COD-i","Rehman_Parry","BiasGuard",
+ "CodeX","VisionX","Coffee_Overflow","Bugged_Out","Shahi_Tukda",
+ "CodeBlooded","Trial","aultest"
+
 ]; // repo names inside the org
 
 export function useGithubCommits() {
