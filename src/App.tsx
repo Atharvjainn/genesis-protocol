@@ -8,6 +8,7 @@ import NotFound from "./pages/NotFound";
 import {Toaster} from 'react-hot-toast'
 import SetTime from "./components/hackathon/Settime";
 import { useGithubCommits } from "@/hooks/useGithubCommits";
+import Page from "./pages/Leaderboardpage";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,7 @@ const App = () => {
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/settime" element={<SetTime />} />
+            <Route path="/leaderboard" element={<Page />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
