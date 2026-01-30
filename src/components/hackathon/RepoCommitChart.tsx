@@ -131,7 +131,6 @@ export default function RepoCommitChart() {
                     font: {
                       size: 16,
                       weight: "bold",
-                      color: "#000000",
                     },
                   },
                 },
