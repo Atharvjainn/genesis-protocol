@@ -5,7 +5,7 @@ const TEAMS = [
  "Oops_-404","INNOV8ORS","Hackers","Rasmalai","BruteForce",
  "Re-Core","TEAM_VAAAS","COD-i","Rehman_Parry","BiasGuard",
  "CodeX","VisionX","Coffee_Overflow","Bugged_Out","Shahi_Tukda",
- "CodeBlooded","Trial","aultest"
+ "CodeBlooded","Trial","aultest","temp"
 
 ]; // repo names inside the org
 
