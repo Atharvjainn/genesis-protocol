@@ -129,7 +129,7 @@ export default function RepoCommitChart() {
                     align: "center",
                     formatter: (value: number) => value,
                     font: {
-                      size: 16,
+                      size: 23,
                       weight: "bold",
                     },
                   },
@@ -146,7 +146,7 @@ export default function RepoCommitChart() {
                       padding: 6,
                       color : "#ffffff",
                       font: {
-                        size: 14,
+                        size: 25,
                         weight: 500,
                       },
                     },
