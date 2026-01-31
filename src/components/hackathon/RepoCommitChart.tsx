@@ -94,7 +94,7 @@ export default function RepoCommitChart() {
           textAlign : "center"
         }}
       >
-        Leaderboard
+        Commits Leaderboard
       </h2>
 
       {chartData && (
