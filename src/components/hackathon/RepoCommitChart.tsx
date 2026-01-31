@@ -25,7 +25,7 @@ export default function RepoCommitChart() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 50000);
+    const interval = setInterval(fetchData, 240000);
     return () => clearInterval(interval);
   }, []);
 
