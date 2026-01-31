@@ -113,7 +113,7 @@ export default function RepoCommitChart() {
               display: none; /* Chrome, Safari, Opera */
             }
           `}</style>
-          <div style={{ height: chartData.labels.length * 38 }}>
+          <div className="text-white" style={{ height: chartData.labels.length * 38 } }>
             <Bar
               data={chartData}
               options={{
@@ -144,6 +144,7 @@ export default function RepoCommitChart() {
                     grid: { display: false },
                     ticks: {
                       padding: 6,
+                      color : "#ffffff",
                       font: {
                         size: 14,
                         weight: 500,
